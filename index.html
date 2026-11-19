@@ -1,22 +1,16 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BTCL Complaint Management</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root{--green:#14532d;--green2:#166534;--bg:#f3f7f3;--line:#dce7dd;--muted:#64748b;--red:#b91c1c;--amber:#a16207}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:'Noto Sans Bengali',sans-serif;color:#17251b}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:9px;padding:10px 14px;background:var(--green);color:white}button.secondary{background:#e7efe8;color:var(--green)}button.danger{background:#b91c1c}button:disabled{opacity:.5;cursor:not-allowed}.wrap{max-width:1200px;margin:auto;padding:18px}.top{background:var(--green);color:#fff;padding:18px 0}.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px}.top h1{font-size:22px;margin:0}.top small{color:#d7eadb}.panel,.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}.hidden{display:none!important}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat b{font-size:26px;display:block;color:var(--green)}.stat span{font-size:13px;color:var(--muted)}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button{background:#e4eee5;color:var(--green)}.tabs button.active{background:var(--green);color:white}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:13px;color:#475569}.field input,.field select,.field textarea,.search{width:100%;border:1px solid #cbd5d0;border-radius:8px;padding:10px;background:#fff;min-width:0}.field textarea{min-height:76px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:10px;border-bottom:1px solid #e5ece6;font-size:14px}th{background:#f5f8f5}.muted{color:var(--muted);font-size:13px}.badge{display:inline-block;border-radius:30px;padding:3px 9px;background:#fef3c7;color:#92400e;font-size:12px}.badge.done{background:#dcfce7;color:#166534}.badge.assigned{background:#dbeafe;color:#1d4ed8}.login{max-width:430px;margin:7vh auto}.notice{padding:10px;border-radius:8px;background:#fff7ed;color:#9a3412;margin:10px 0}.customer-hit{border:1px solid var(--line);border-radius:9px;padding:12px;margin-top:8px;cursor:pointer;background:#f9fcf9}.customer-hit:hover{border-color:var(--green)}.right{display:flex;gap:8px;align-items:center}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}h2{font-size:19px;margin:4px 0 12px}.error{color:var(--red)}@media(max-width:750px){.grid{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:1fr}.top .wrap{align-items:flex-start;flex-direction:column}.wrap{padding:12px}.stat b{font-size:22px}}@media print{.top,.tabs,button,.no-print{display:none!important}body{background:white}.wrap{max-width:none}}
-</style>
-</head>
-<body>
-<header class="top"><div class="wrap"><div><h1>BTCL অভিযোগ ব্যবস্থাপনা</h1><small>গ্রাহক, অভিযোগ ও লাইনম্যান মনিটরিং</small></div><div class="right"><span id="who"></span><button id="logout" class="secondary hidden">লগআউট</button></div></div></header>
-<main class="wrap">
-<section id="setup" class="panel hidden">
-<h2>প্রথমে Supabase সংযোগ দিন</h2><p>প্রকল্পের URL এবং anon public key নিচে বসান। এগুলো Supabase Dashboard → Project Settings → API থেকে পাবেন।</p>
-<div class="formgrid"><div class="field"><label>Supabase Project URL</label><input id="url" placeholder="https://lkmrezpwhjjccnjvucag.supabase.co"></div><div class="field"><label>Supabase anon public key</label><input id="key" placeholder="sb_publishable_x2nEXpXNv3ywYw-jQrziOw_WHW0upQE"></div></div>
+<div class="field">
+<label>Supabase Project URL</label>
+<input id="url" value="https://lkmrezpwhjjccnjvucag.supabase.co">
+</div>
+
+<div class="field">
+<label>Supabase anon public key</label>
+<input id="key" value="sb_publishable_x2nEXpXNv3ywYw-jQrziOw_WHW0upQE">
+</div>
+</div>
 <div class="actions"><button id="saveConfig">সংযোগ সংরক্ষণ</button></div><p class="muted">কনফিগারেশন এই ব্রাউজারের Local Storage-এ থাকবে। Secret/service_role key কখনো এখানে দেবেন না।</p>
 </section>
 <section id="login" class="panel login hidden">
