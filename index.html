@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTCL Complaint Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--green:#14532d;--green2:#166534;--bg:#f3f7f3;--line:#dce7dd;--muted:#64748b;--red:#b91c1c;--amber:#a16207}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:'Noto Sans Bengali',sans-serif;color:#17251b}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:9px;padding:10px 14px;background:var(--green);color:white}button.secondary{background:#e7efe8;color:var(--green)}button.danger{background:#b91c1c}button:disabled{opacity:.5;cursor:not-allowed}.wrap{max-width:1200px;margin:auto;padding:18px}.top{background:var(--green);color:#fff;padding:18px 0}.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px}.top h1{font-size:22px;margin:0}.top small{color:#d7eadb}.panel,.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}.hidden{display:none!important}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat b{font-size:26px;display:block;color:var(--green)}.stat span{font-size:13px;color:var(--muted)}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button{background:#e4eee5;color:var(--green)}.tabs button.active{background:var(--green);color:white}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:13px;color:#475569}.field input,.field select,.field textarea,.search{width:100%;border:1px solid #cbd5d0;border-radius:8px;padding:10px;background:#fff;min-width:0}.field textarea{min-height:76px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:10px;border-bottom:1px solid #e5ece6;font-size:14px}th{background:#f5f8f5}.muted{color:var(--muted);font-size:13px}.badge{display:inline-block;border-radius:30px;padding:3px 9px;background:#fef3c7;color:#92400e;font-size:12px}.badge.done{background:#dcfce7;color:#166534}.badge.assigned{background:#dbeafe;color:#1d4ed8}.login{max-width:430px;margin:7vh auto}.notice{padding:10px;border-radius:8px;background:#fff7ed;color:#9a3412;margin:10px 0}.customer-hit{border:1px solid var(--line);border-radius:9px;padding:12px;margin-top:8px;cursor:pointer;background:#f9fcf9}.customer-hit:hover{border-color:var(--green)}.right{display:flex;gap:8px;align-items:center}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}h2{font-size:19px;margin:4px 0 12px}.error{color:var(--red)}@media(max-width:750px){.grid{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:1fr}.top .wrap{align-items:flex-start;flex-direction:column}.wrap{padding:12px}.stat b{font-size:22px}}@media print{.top,.tabs,button,.no-print{display:none!important}body{background:white}.wrap{max-width:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><div><h1>BTCL অভিযোগ ব্যবস্থাপনা</h1><small>গ্রাহক, অভিযোগ ও লাইনম্যান মনিটরিং</small></div><div class="right"><span id="who"></span><button id="logout" class="secondary hidden">লগআউট</button></div></div></header>
+<main class="wrap">
+<section id="setup" class="panel hidden">
+<h2>প্রথমে Supabase সংযোগ দিন</h2><p>প্রকল্পের URL এবং anon public key নিচে বসান। এগুলো Supabase Dashboard → Project Settings → API থেকে পাবেন।</p>
+<div class="formgrid"><div class="field"><label>Supabase Project URL</label><input id="url" placeholder="https://xxxx.supabase.co"></div><div class="field"><label>Supabase anon public key</label><input id="key" placeholder="eyJ..."></div></div>
+<div class="actions"><button id="saveConfig">সংযোগ সংরক্ষণ</button></div><p class="muted">কনফিগারেশন এই ব্রাউজারের Local Storage-এ থাকবে। Secret/service_role key কখনো এখানে দেবেন না।</p>
+</section>
+<section id="login" class="panel login hidden">
+<h2>লগইন</h2><div class="field"><label>ইমেইল</label><input id="email" type="email" autocomplete="username"></div><div class="field"><label>পাসওয়ার্ড</label><input id="password" type="password" autocomplete="current-password"></div><div class="actions"><button id="loginBtn">লগইন করুন</button></div><p id="loginMsg" class="muted"></p>
+</section>
+<section id="app" class="hidden">
+<div class="grid">
+<div class="stat"><span>মোট গ্রাহক</span><b id="sCustomers">০</b></div><div class="stat"><span>মোট অভিযোগ</span><b id="sTotal">০</b></div><div class="stat"><span>চলমান অভিযোগ</span><b id="sOpen">০</b></div><div class="stat"><span>সমাধান হয়েছে</span><b id="sDone">০</b></div>
+</div>
+<div class="tabs no-print" id="tabs">
+<button class="active" data-tab="dashboard">ড্যাশবোর্ড</button><button data-tab="customers">গ্রাহক</button><button data-tab="complaints">অভিযোগ</button><button data-tab="staff">লাইনম্যান</button><button data-tab="reports">রিপোর্ট</button>
+</div>
+<section id="dashboard" class="tab panel"><div class="sectionhead"><h2>সাম্প্রতিক অভিযোগ</h2><button id="refresh">রিফ্রেশ</button></div><div id="recent"></div></section>
+<section id="customers" class="tab panel hidden">
+<div class="sectionhead"><h2>গ্রাহক ব্যবস্থাপনা</h2><button id="newCustomer">নতুন গ্রাহক যোগ</button></div>
+<input id="customerSearch" class="search" placeholder="গ্রাহক আইডি, ফোন বা নাম দিয়ে খুঁজুন">
+<div id="customerResults"></div>
+<div id="customerForm" class="panel hidden"><h2 id="customerFormTitle">গ্রাহক যোগ</h2><input type="hidden" id="cId">
+<div class="formgrid">
+<div class="field"><label>গ্রাহক আইডি *</label><input id="cCode"></div><div class="field"><label>গ্রাহকের নাম *</label><input id="cName"></div>
+<div class="field"><label>ফোন নম্বর *</label><input id="cPhone"></div><div class="field"><label>বিকল্প ফোন</label><input id="cPhone2"></div>
+<div class="field"><label>টেলিফোন/সার্ভিস নম্বর</label><input id="cService"></div><div class="field"><label>সংযোগের ধরন</label><select id="cType"><option>ইন্টারনেট</option><option>টেলিফোন</option><option>উভয়</option><option>অন্যান্য</option></select></div>
+<div class="field"><label>জেলা</label><input id="cDistrict"></div><div class="field"><label>উপজেলা</label><input id="cUpazila"></div>
+<div class="field"><label>ঠিকানা</label><input id="cAddress"></div><div class="field"><label>অতিরিক্ত তথ্য</label><input id="cNotes"></div>
+</div><div class="actions"><button id="saveCustomer">সংরক্ষণ</button><button class="secondary" id="cancelCustomer">বাতিল</button></div>
+</div></section>
+<section id="complaints" class="tab panel hidden">
+<div class="sectionhead"><h2>অভিযোগ ব্যবস্থাপনা</h2><button id="newComplaint">নতুন অভিযোগ</button></div>
+<input id="complaintSearch" class="search" placeholder="অভিযোগ নম্বর, গ্রাহক আইডি, নাম বা ফোন দিয়ে খুঁজুন">
+<div id="complaintResults"></div>
+<div id="complaintForm" class="panel hidden"><h2 id="complaintFormTitle">নতুন অভিযোগ</h2><input type="hidden" id="tId">
+<div class="formgrid">
+<div class="field"><label>গ্রাহক খুঁজুন (আইডি/ফোন/নাম) *</label><input id="tCustomerSearch" placeholder="লিখে গ্রাহক নির্বাচন করুন"><div id="customerMatches"></div><input type="hidden" id="tCustomerId"></div>
+<div class="field"><label>অভিযোগের ধরন *</label><select id="tCategory"><option>ইন্টারনেট</option><option>টেলিফোন</option><option>লাইন কাটা</option><option>মডেম/ONU সমস্যা</option><option>নতুন সংযোগ</option><option>বিল সংক্রান্ত</option><option>অন্যান্য</option></select></div>
+<div class="field"><label>অভিযোগ গ্রহণের সময় *</label><input id="tReceived" type="datetime-local"></div><div class="field"><label>অভিযোগের মাধ্যম</label><select id="tChannel"><option>ফোন</option><option>SMS</option><option>সরাসরি</option><option>অন্যান্য</option></select></div>
+<div class="field"><label>সমস্যার বিবরণ *</label><textarea id="tProblem"></textarea></div><div class="field"><label>অগ্রাধিকার</label><select id="tPriority"><option>সাধারণ</option><option>জরুরি</option><option>অতি জরুরি</option></select></div>
+<div class="field"><label>লাইনম্যান</label><select id="tStaff"><option value="">নির্বাচন করুন</option></select></div><div class="field"><label>লাইনম্যানকে দেওয়ার সময়</label><input id="tAssigned" type="datetime-local"></div>
+<div class="field"><label>অবস্থা</label><select id="tStatus"><option>নতুন</option><option>দায়িত্ব দেওয়া হয়েছে</option><option>কাজ চলছে</option><option>সমাধান হয়েছে</option><option>বাতিল</option></select></div><div class="field"><label>সমাধানের সময়</label><input id="tSolved" type="datetime-local"></div>
+<div class="field"><label>সমাধানের বিবরণ</label><textarea id="tResolution"></textarea></div><div class="field"><label>অভ্যন্তরীণ নোট</label><textarea id="tNotes"></textarea></div>
+</div><div class="actions"><button id="saveComplaint">অভিযোগ সংরক্ষণ</button><button class="secondary" id="cancelComplaint">বাতিল</button></div><p class="muted">সময়গুলো স্থানীয় সময় হিসেবে ইনপুট হবে এবং ডেটাবেজে timestamp হিসেবে সংরক্ষিত হবে।</p>
+</div></section>
+<section id="staff" class="tab panel hidden"><div class="sectionhead"><h2>লাইনম্যান তালিকা</h2><button id="newStaff">লাইনম্যান যোগ</button></div><p class="muted">লাইনম্যানের লগইন Supabase Authentication থেকে তৈরি করতে হবে। এরপর তার Auth User ID এখানে যুক্ত করুন।</p><div id="staffList"></div>
+<div id="staffForm" class="panel hidden"><div class="formgrid"><div class="field"><label>নাম</label><input id="staffName"></div><div class="field"><label>মোবাইল</label><input id="staffPhone"></div><div class="field"><label>Auth User ID (UUID)</label><input id="staffUid"></div></div><div class="actions"><button id="saveStaff">সংরক্ষণ</button><button class="secondary" id="cancelStaff">বাতিল</button></div></div>
+</section>
+<section id="reports" class="tab panel hidden"><div class="sectionhead"><h2>রিপোর্ট</h2><div class="right"><select id="reportYear"></select><button id="exportCsv">CSV ডাউনলোড</button><button class="secondary" onclick="window.print()">প্রিন্ট / PDF</button></div></div><div id="reportSummary"></div><h2>মাসভিত্তিক অভিযোগ</h2><div id="monthly"></div><h2>লাইনম্যানভিত্তিক কাজ</h2><div id="staffReport"></div></section>
+</section>
+<div id="globalMsg" class="muted"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let db=null,user=null,profile=null,customers=[],tickets=[],staff=[];
+const cfg=()=>JSON.parse(localStorage.getItem('btcl_supabase')||'null');
+function msg(s,err=false){$('globalMsg').textContent=s;$('globalMsg').className=err?'error':'muted'}
+function bn(n){return Number(n||0).toLocaleString('bn-BD')}
+function dtLocal(d=new Date()){const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
+function toIso(v){return v?new Date(v).toISOString():null}
+function fromIso(v){if(!v)return '';const d=new Date(v);return dtLocal(d)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).classList.add('hidden')}
+function table(rows,cols){if(!rows.length)return '<p class="muted">কোনো তথ্য পাওয়া যায়নি।</p>';return `<div class="tablewrap"><table><thead><tr>${cols.map(c=>`<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${c[1](r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+function statusBadge(s){return `<span class="badge ${s==='সমাধান হয়েছে'?'done':s==='দায়িত্ব দেওয়া হয়েছে'||s==='কাজ চলছে'?'assigned':''}">${esc(s)}</span>`}
+async function boot(){
+ const c=cfg();if(!c){show('setup');return}
+ db=window.supabase.createClient(c.url,c.key);
+ const {data:{session}}=await db.auth.getSession();if(session){user=session.user;await enter()}else show('login');
+ db.auth.onAuthStateChange((_e,s)=>{if(s){user=s.user;enter()}else{user=null;hide('app');show('login')}});
+}
+$('saveConfig').onclick=()=>{const url=$('url').value.trim(),key=$('key').value.trim();if(!url||!key)return msg('URL এবং anon key দিন',true);localStorage.setItem('btcl_supabase',JSON.stringify({url,key}));location.reload()};
+$('loginBtn').onclick=async()=>{const {error}=await db.auth.signInWithPassword({email:$('email').value,password:$('password').value});$('loginMsg').textContent=error?error.message:'লগইন হচ্ছে…'};
+$('logout').onclick=()=>db.auth.signOut();
+async function enter(){
+ hide('setup');hide('login');show('app');show('logout');
+ const {data,error}=await db.from('profiles').select('*').eq('id',user.id).single();
+ if(error||!data){msg('আপনার প্রোফাইল তৈরি হয়নি। SQL নির্দেশিকা অনুযায়ী profiles টেবিলে আপনার user ID যোগ করুন।',true);return}
+ profile=data;$('who').textContent=`${profile.full_name} (${profile.role})`;
+ $('tabs').classList.toggle('hidden',profile.role!=='admin');
+ if(profile.role==='admin'){await loadAll();}else{await loadStaffView();}
+}
+async function loadAll(){
+ const [a,b,c]=await Promise.all([db.from('customers').select('*').order('created_at',{ascending:false}),db.from('complaints').select('*, customers(customer_code,full_name,phone)').order('received_at',{ascending:false}),db.from('profiles').select('*').eq('role','staff').order('full_name')]);
+ if(a.error||b.error||c.error)return msg((a.error||b.error||c.error).message,true);
+ customers=a.data;tickets=b.data;staff=c.data;renderAll();
+}
+function renderAll(){
+ $('sCustomers').textContent=bn(customers.length);$('sTotal').textContent=bn(tickets.length);$('sOpen').textContent=bn(tickets.filter(t=>!['সমাধান হয়েছে','বাতিল'].includes(t.status)).length);$('sDone').textContent=bn(tickets.filter(t=>t.status==='সমাধান হয়েছে').length);
+ $('recent').innerHTML=table(tickets.slice(0,10),[['অভিযোগ',r=>esc(r.ticket_no)],['গ্রাহক',r=>esc(r.customers?.full_name)],['সমস্যা',r=>esc(r.category+' — '+r.problem)],['গ্রহণ',r=>new Date(r.received_at).toLocaleString('bn-BD')],['অবস্থা',r=>statusBadge(r.status)]]);
+ renderCustomers();renderTickets();renderStaff();fillStaffSelect();renderReports();
+}
+function renderCustomers(q=''){
+ const arr=customers.filter(c=>!q||[c.customer_code,c.full_name,c.phone,c.phone2,c.service_number].some(x=>(x||'').toLowerCase().includes(q.toLowerCase())));
+ $('customerResults').innerHTML=table(arr,[['আইডি',r=>esc(r.customer_code)],['নাম',r=>esc(r.full_name)],['ফোন',r=>esc(r.phone)],['সার্ভিস নম্বর',r=>esc(r.service_number)],['ঠিকানা',r=>esc([r.upazila,r.district].filter(Boolean).join(', '))],['অ্যাকশন',r=>`<button class="secondary" onclick="editCustomer('${r.id}')">সম্পাদনা</button>`]]);
+}
+$('customerSearch').oninput=e=>renderCustomers(e.target.value);
+function clearCustomer(){['cId','cCode','cName','cPhone','cPhone2','cService','cDistrict','cUpazila','cAddress','cNotes'].forEach(x=>$(x).value='');}
+$('newCustomer').onclick=()=>{clearCustomer();$('customerFormTitle').textContent='নতুন গ্রাহক';show('customerForm')};
+$('cancelCustomer').onclick=()=>hide('customerForm');
+window.editCustomer=id=>{const c=customers.find(x=>x.id===id);if(!c)return;[['cId','id'],['cCode','customer_code'],['cName','full_name'],['cPhone','phone'],['cPhone2','phone2'],['cService','service_number'],['cType','connection_type'],['cDistrict','district'],['cUpazila','upazila'],['cAddress','address'],['cNotes','notes']].forEach(([a,b])=>$(a).value=c[b]||'');$('customerFormTitle').textContent='গ্রাহক সম্পাদনা';show('customerForm');window.scrollTo(0,0)};
+$('saveCustomer').onclick=async()=>{const id=$('cId').value;const payload={customer_code:$('cCode').value.trim(),full_name:$('cName').value.trim(),phone:$('cPhone').value.trim(),phone2:$('cPhone2').value.trim()||null,service_number:$('cService').value.trim()||null,connection_type:$('cType').value,district:$('cDistrict').value.trim()||null,upazila:$('cUpazila').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null};if(!payload.customer_code||!payload.full_name||!payload.phone)return msg('গ্রাহক আইডি, নাম ও ফোন আবশ্যক',true);const res=id?await db.from('customers').update(payload).eq('id',id):await db.from('customers').insert(payload);if(res.error)return msg(res.error.message,true);hide('customerForm');await loadAll();msg('গ্রাহকের তথ্য সংরক্ষিত হয়েছে')};
+function renderTickets(q=''){const arr=tickets.filter(t=>!q||[t.ticket_no,t.customers?.customer_code,t.customers?.full_name,t.customers?.phone,t.problem].some(x=>(x||'').toLowerCase().includes(q.toLowerCase())));$('complaintResults').innerHTML=table(arr,[['নম্বর',r=>esc(r.ticket_no)],['গ্রাহক',r=>esc(r.customers?.full_name)],['ধরন',r=>esc(r.category)],['সমস্যা',r=>esc(r.problem)],['গ্রহণ',r=>new Date(r.received_at).toLocaleString('bn-BD')],['লাইনম্যান',r=>esc(staff.find(s=>s.id===r.assigned_to)?.full_name||'—')],['অবস্থা',r=>statusBadge(r.status)],['অ্যাকশন',r=>`<button class="secondary" onclick="editTicket('${r.id}')">দেখুন / সম্পাদনা</button>`]])}
+$('complaintSearch').oninput=e=>renderTickets(e.target.value);
+function fillStaffSelect(){ $('tStaff').innerHTML='<option value="">নির্বাচন করুন</option>'+staff.map(s=>`<option value="${s.id}">${esc(s.full_name)}</option>`).join('')}
+function clearTicket(){['tId','tCustomerSearch','tCustomerId','tProblem','tAssigned','tSolved','tResolution','tNotes'].forEach(x=>$(x).value='');$('tReceived').value=dtLocal();$('tCategory').value='ইন্টারনেট';$('tChannel').value='ফোন';$('tPriority').value='সাধারণ';$('tStatus').value='নতুন';$('tStaff').value='';$('customerMatches').innerHTML=''}
+$('newComplaint').onclick=()=>{clearTicket();$('complaintFormTitle').textContent='নতুন অভিযোগ';show('complaintForm');window.scrollTo(0,0)};
+$('cancelComplaint').onclick=()=>hide('complaintForm');
+$('tCustomerSearch').oninput=e=>{const q=e.target.value.toLowerCase();const found=customers.filter(c=>[c.customer_code,c.full_name,c.phone,c.phone2].some(x=>(x||'').toLowerCase().includes(q))).slice(0,8);$('customerMatches').innerHTML=found.map(c=>`<div class="customer-hit" onclick="pickCustomer('${c.id}')"><b>${esc(c.full_name)}</b> — ${esc(c.customer_code)} — ${esc(c.phone)}</div>`).join('')};
+window.pickCustomer=id=>{const c=customers.find(x=>x.id===id);$('tCustomerId').value=id;$('tCustomerSearch').value=`${c.full_name} (${c.customer_code})`; $('customerMatches').innerHTML=''};
+window.editTicket=id=>{const t=tickets.find(x=>x.id===id);if(!t)return;clearTicket();$('tId').value=t.id;$('tCustomerId').value=t.customer_id;$('tCustomerSearch').value=`${t.customers?.full_name||''} (${t.customers?.customer_code||''})`;$('tCategory').value=t.category;$('tReceived').value=fromIso(t.received_at);$('tChannel').value=t.channel;$('tProblem').value=t.problem;$('tPriority').value=t.priority;$('tStaff').value=t.assigned_to||'';$('tAssigned').value=fromIso(t.assigned_at);$('tStatus').value=t.status;$('tSolved').value=fromIso(t.solved_at);$('tResolution').value=t.resolution||'';$('tNotes').value=t.notes||'';$('complaintFormTitle').textContent='অভিযোগ সম্পাদনা: '+t.ticket_no;show('complaintForm');window.scrollTo(0,0)};
+$('saveComplaint').onclick=async()=>{const id=$('tId').value;const old=tickets.find(t=>t.id===id);const status=$('tStatus').value,assignee=$('tStaff').value||null;const payload={customer_id:$('tCustomerId').value,category:$('tCategory').value,received_at:toIso($('tReceived').value),channel:$('tChannel').value,problem:$('tProblem').value.trim(),priority:$('tPriority').value,assigned_to:assignee,assigned_at:toIso($('tAssigned').value),status,solved_at:status==='সমাধান হয়েছে'?(toIso($('tSolved').value)||new Date().toISOString()):toIso($('tSolved').value),resolution:$('tResolution').value.trim()||null,notes:$('tNotes').value.trim()||null};if(!payload.customer_id||!payload.problem||!payload.received_at)return msg('গ্রাহক, সমস্যা ও অভিযোগ গ্রহণের সময় আবশ্যক',true);if(assignee&&!payload.assigned_at)payload.assigned_at=new Date().toISOString();if(status!=='সমাধান হয়েছে'&&!payload.solved_at)payload.solved_at=null;const res=id?await db.from('complaints').update(payload).eq('id',id):await db.from('complaints').insert(payload).select('id').single();if(res.error)return msg(res.error.message,true);if(id){await db.from('complaint_events').insert({complaint_id:id,event_type:'updated',details:`অবস্থা: ${status}; দায়িত্বপ্রাপ্ত: ${assignee||'নেই'}`})}else if(res.data?.id){await db.from('complaint_events').insert({complaint_id:res.data.id,event_type:'created',details:'নতুন অভিযোগ তৈরি'})}hide('complaintForm');await loadAll();msg('অভিযোগ সংরক্ষিত হয়েছে')};
+$('newStaff').onclick=()=>{['staffName','staffPhone','staffUid'].forEach(x=>$(x).value='');show('staffForm')};$('cancelStaff').onclick=()=>hide('staffForm');
+$('saveStaff').onclick=async()=>{const uid=$('staffUid').value.trim();if(!uid)return msg('Auth User ID আবশ্যক',true);const {error}=await db.from('profiles').upsert({id:uid,full_name:$('staffName').value.trim(),phone:$('staffPhone').value.trim()||null,role:'staff'});if(error)return msg(error.message,true);hide('staffForm');await loadAll()};
+function renderStaff(){$('staffList').innerHTML=table(staff,[['নাম',r=>esc(r.full_name)],['মোবাইল',r=>esc(r.phone)],['Auth ID',r=>`<small>${esc(r.id)}</small>`],['দায়িত্বে অভিযোগ',r=>bn(tickets.filter(t=>t.assigned_to===r.id&&!['সমাধান হয়েছে','বাতিল'].includes(t.status)).length)],['মোট সমাধান',r=>bn(tickets.filter(t=>t.assigned_to===r.id&&t.status==='সমাধান হয়েছে').length)]])}
+function renderReports(){const y=$('reportYear').value||String(new Date().getFullYear());const arr=tickets.filter(t=>new Date(t.received_at).getFullYear()===Number(y));$('reportSummary').innerHTML=`<p>নির্বাচিত বছর <b>${y}</b> — মোট অভিযোগ <b>${bn(arr.length)}</b>, সমাধান <b>${bn(arr.filter(t=>t.status==='সমাধান হয়েছে').length)}</b>, চলমান <b>${bn(arr.filter(t=>!['সমাধান হয়েছে','বাতিল'].includes(t.status)).length)}</b></p>`;const months=Array.from({length:12},(_,i)=>({m:new Date(2000,i,1).toLocaleString('bn-BD',{month:'long'}),n:arr.filter(t=>new Date(t.received_at).getMonth()===i).length}));$('monthly').innerHTML=table(months,[['মাস',r=>r.m],['অভিযোগ',r=>bn(r.n)]]);$('staffReport').innerHTML=table(staff.map(s=>({name:s.full_name,total:arr.filter(t=>t.assigned_to===s.id).length,done:arr.filter(t=>t.assigned_to===s.id&&t.status==='সমাধান হয়েছে').length,pending:arr.filter(t=>t.assigned_to===s.id&&!['সমাধান হয়েছে','বাতিল'].includes(t.status)).length})),[['লাইনম্যান',r=>esc(r.name)],['মোট দায়িত্ব',r=>bn(r.total)],['সমাধান',r=>bn(r.done)],['বাকি',r=>bn(r.pending)]])}
+$('reportYear').innerHTML=Array.from({length:8},(_,i)=>{const y=new Date().getFullYear()-i;return `<option>${y}</option>`}).join('');$('reportYear').onchange=renderReports;
+$('exportCsv').onclick=()=>{const rows=[['Ticket','Customer ID','Customer Name','Phone','Category','Problem','Received','Assigned','Staff','Status','Solved','Resolution'],...tickets.map(t=>[t.ticket_no,t.customers?.customer_code,t.customers?.full_name,t.customers?.phone,t.category,t.problem,t.received_at,t.assigned_at,staff.find(s=>s.id===t.assigned_to)?.full_name,t.status,t.solved_at,t.resolution])];const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='btcl-complaints.csv';a.click();URL.revokeObjectURL(a.href)};
+$('refresh').onclick=loadAll;
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.classList.add('hidden'));show(b.dataset.tab);if(b.dataset.tab==='reports')renderReports()});
+async function loadStaffView(){const {data,error}=await db.from('complaints').select('*, customers(customer_code,full_name,phone)').order('received_at',{ascending:false});if(error)return msg(error.message,true);tickets=data; $('tabs').classList.add('hidden');$('sCustomers').textContent='—';$('sTotal').textContent=bn(tickets.length);$('sOpen').textContent=bn(tickets.filter(t=>!['সমাধান হয়েছে','বাতিল'].includes(t.status)).length);$('sDone').textContent=bn(tickets.filter(t=>t.status==='সমাধান হয়েছে').length);$('recent').innerHTML=table(tickets,[['অভিযোগ',r=>esc(r.ticket_no)],['গ্রাহক',r=>esc(r.customers?.full_name)],['সমস্যা',r=>esc(r.problem)],['গ্রহণ',r=>new Date(r.received_at).toLocaleString('bn-BD')],['অবস্থা',r=>statusBadge(r.status)]])}
+boot();
+</script></body></html>
