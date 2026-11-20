@@ -59,7 +59,7 @@
 </section>
 <div id="globalMsg" class="muted"></div>
 </main>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 const $=id=>document.getElementById(id);
 let db=null,user=null,profile=null,customers=[],tickets=[],staff=[];
 const cfg=()=>JSON.parse(localStorage.getItem('btcl_supabase')||'null');
