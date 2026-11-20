@@ -118,7 +118,7 @@ async function boot(){
 
 }
 $('saveConfig').onclick=()=>{const url=$('url').value.trim(),key=$('key').value.trim();if(!url||!key)return msg('URL এবং anon key দিন',true);localStorage.setItem('btcl_supabase',JSON.stringify({url,key}));location.reload()};
-$('loginBtn').onclick=async()=
+$('loginBtn').onclick=async()=>{
   try {
     if (!db) {
       throw new Error('Supabase সংযোগ তৈরি হয়নি।');
