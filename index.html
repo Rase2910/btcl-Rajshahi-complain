@@ -75,6 +75,9 @@ function table(rows,cols){if(!rows.length)return '<p class="muted">কোনো 
 function statusBadge(s){return `<span class="badge ${s==='সমাধান হয়েছে'?'done':s==='দায়িত্ব দেওয়া হয়েছে'||s==='কাজ চলছে'?'assigned':''}">${esc(s)}</span>`}
 async function boot(){
  const c=cfg();if(!c){show('setup');return}
+ if (!window.supabase) {
+  throw new Error('Supabase লাইব্রেরি লোড হয়নি।');
+}
  db=window.supabase.createClient(c.url,c.key);
  const {data:{session}}=await db.auth.getSession();if(session){user=session.user;await enter()}else show('login');
  db.auth.onAuthStateChange((_e,s)=>{if(s){user=s.user;enter()}else{user=null;hide('app');show('login')}});
