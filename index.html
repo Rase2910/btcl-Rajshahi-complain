@@ -203,4 +203,5 @@ $('refresh').onclick=loadAll;
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.classList.add('hidden'));show(b.dataset.tab);if(b.dataset.tab==='reports')renderReports()});
 async function loadStaffView(){const {data,error}=await db.from('complaints').select('*, customers(customer_code,full_name,phone)').order('received_at',{ascending:false});if(error)return msg(error.message,true);tickets=data; $('tabs').classList.add('hidden');$('sCustomers').textContent='—';$('sTotal').textContent=bn(tickets.length);$('sOpen').textContent=bn(tickets.filter(t=>!['সমাধান হয়েছে','বাতিল'].includes(t.status)).length);$('sDone').textContent=bn(tickets.filter(t=>t.status==='সমাধান হয়েছে').length);$('recent').innerHTML=table(tickets,[['অভিযোগ',r=>esc(r.ticket_no)],['গ্রাহক',r=>esc(r.customers?.full_name)],['সমস্যা',r=>esc(r.problem)],['গ্রহণ',r=>new Date(r.received_at).toLocaleString('bn-BD')],['অবস্থা',r=>statusBadge(r.status)]])}
 boot();
+  alert('JavaScript চালু আছে');
 </script></body></html>
