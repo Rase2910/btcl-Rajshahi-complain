@@ -115,7 +115,7 @@ async function boot(){
    $('loginMsg').textContent='সংযোগে সমস্যা: '+e.message;
    console.error(e);
  }
-}
+
 }
 $('saveConfig').onclick=()=>{const url=$('url').value.trim(),key=$('key').value.trim();if(!url||!key)return msg('URL এবং anon key দিন',true);localStorage.setItem('btcl_supabase',JSON.stringify({url,key}));location.reload()};
 $('loginBtn').onclick=async()=
