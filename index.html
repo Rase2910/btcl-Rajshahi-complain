@@ -118,10 +118,23 @@ async function boot(){
 
 }
 $('saveConfig').onclick=()=>{const url=$('url').value.trim(),key=$('key').value.trim();if(!url||!key)return msg('URL এবং anon key দিন',true);localStorage.setItem('btcl_supabase',JSON.stringify({url,key}));location.reload()};
+
 $('loginBtn').onclick=async()=>{
   try {
+    $('loginMsg').textContent='Supabase সংযোগ তৈরি হচ্ছে...';
+
     if (!db) {
-      throw new Error('Supabase সংযোগ তৈরি হয়নি।');
+      const c=cfg();
+
+      if (!c) {
+        throw new Error('আগে URL ও anon key দিয়ে সংযোগ সংরক্ষণ করুন।');
+      }
+
+      if (!window.supabase || !window.supabase.createClient) {
+        throw new Error('Supabase লাইব্রেরি লোড হয়নি।');
+      }
+
+      db=window.supabase.createClient(c.url,c.key);
     }
 
     $('loginMsg').textContent='লগইন পরীক্ষা হচ্ছে...';
@@ -140,6 +153,7 @@ $('loginBtn').onclick=async()=>{
     console.error(e);
   }
 };
+
 $('logout').onclick=()=>db.auth.signOut();
 async function enter(){
  hide('setup');hide('login');show('app');show('logout');
