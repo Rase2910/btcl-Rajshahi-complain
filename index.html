@@ -159,7 +159,7 @@ async function enter(){
  hide('setup');hide('login');show('app');show('logout');
  const {data,error}=await db.from('profiles').select('*').eq('id',user.id).single();
  if(error||!data){msg('আপনার প্রোফাইল তৈরি হয়নি। SQL নির্দেশিকা অনুযায়ী profiles টেবিলে আপনার user ID যোগ করুন।',true);return}
- profile=data;$('who').textContent=`${profile.full_name} (${profile.role})`;
+profile=data;if($('who'))$('who').textContent=`${profile.full_name} (${profile.role})`;
  $('tabs').classList.toggle('hidden',profile.role!=='admin');
  if(profile.role==='admin'){await loadAll();}else{await loadStaffView();}
 }
