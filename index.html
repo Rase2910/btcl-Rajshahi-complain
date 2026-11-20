@@ -74,13 +74,48 @@ function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).class
 function table(rows,cols){if(!rows.length)return '<p class="muted">কোনো তথ্য পাওয়া যায়নি।</p>';return `<div class="tablewrap"><table><thead><tr>${cols.map(c=>`<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${c[1](r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
 function statusBadge(s){return `<span class="badge ${s==='সমাধান হয়েছে'?'done':s==='দায়িত্ব দেওয়া হয়েছে'||s==='কাজ চলছে'?'assigned':''}">${esc(s)}</span>`}
 async function boot(){
- const c=cfg();if(!c){show('setup');return}
- if (!window.supabase) {
-  throw new Error('Supabase লাইব্রেরি লোড হয়নি।');
+ try {
+   const c=cfg();
+
+   if(!c){
+     show('setup');
+     return;
+   }
+
+   if(!window.supabase || !window.supabase.createClient){
+     throw new Error('Supabase লাইব্রেরি লোড হয়নি।');
+   }
+
+   db=window.supabase.createClient(c.url,c.key);
+
+   const {data,error}=await db.auth.getSession();
+
+   if(error) throw error;
+
+   if(data.session){
+     user=data.session.user;
+     await enter();
+   }else{
+     show('login');
+   }
+
+   db.auth.onAuthStateChange((_e,s)=>{
+     if(s){
+       user=s.user;
+       enter();
+     }else{
+       user=null;
+       hide('app');
+       show('login');
+     }
+   });
+
+ } catch(e) {
+   show('login');
+   $('loginMsg').textContent='সংযোগে সমস্যা: '+e.message;
+   console.error(e);
+ }
 }
- db=window.supabase.createClient(c.url,c.key);
- const {data:{session}}=await db.auth.getSession();if(session){user=session.user;await enter()}else show('login');
- db.auth.onAuthStateChange((_e,s)=>{if(s){user=s.user;enter()}else{user=null;hide('app');show('login')}});
 }
 $('saveConfig').onclick=()=>{const url=$('url').value.trim(),key=$('key').value.trim();if(!url||!key)return msg('URL এবং anon key দিন',true);localStorage.setItem('btcl_supabase',JSON.stringify({url,key}));location.reload()};
 $('loginBtn').onclick=async()=>{
